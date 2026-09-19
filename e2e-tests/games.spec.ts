@@ -95,6 +95,24 @@ test.describe('Game Listing and Navigation', () => {
     });
   });
 
+  test('should navigate to a publisher page and show that publisher\'s games', async ({ page }) => {
+    await test.step('Navigate to homepage and select a publisher link', async () => {
+      await page.goto('/');
+      const publisherTag = page.getByTestId('game-publisher').first();
+      await expect(publisherTag).toBeVisible();
+      const publisherName = (await publisherTag.textContent())?.trim() ?? '';
+      const publisherLink = page.locator('a').filter({ has: publisherTag }).first();
+
+      await publisherLink.click();
+      await expect(page).toHaveURL(/\/publisher\/\d+$/);
+      await expect(page.getByTestId('publisher-page')).toBeVisible();
+      await expect(page.getByTestId('publisher-page-title')).toContainText(publisherName);
+      await expect(page.getByTestId('publisher-games-grid')).toBeVisible();
+      await expect(page.getByTestId('game-card').first()).toBeVisible();
+      expect(await page.getByTestId('game-card').count()).toBeGreaterThan(0);
+    });
+  });
+
   test('should display game details with all required information', async ({ page }) => {
     await test.step('Navigate to specific game details page', async () => {
       await page.goto('/game/1');
