@@ -1,4 +1,4 @@
-import { asc, count, eq } from 'drizzle-orm';
+import { asc, count, eq, inArray, and } from 'drizzle-orm';
 import type { Database } from './db';
 import { games, categories, publishers } from '../../db/schema';
 import type { Game } from '../types/game';
@@ -9,6 +9,16 @@ export interface PaginatedGames {
     totalPages: number;
     currentPage: number;
     pageSize: number;
+}
+
+export interface GameFilterOptions {
+    categories: Array<{ id: number; name: string }>;
+    publishers: Array<{ id: number; name: string }>;
+}
+
+export interface GameFilters {
+    categoryIds?: number[];
+    publisherId?: number;
 }
 
 const gameSelection = {
@@ -76,6 +86,35 @@ export function normalizePageNumber(page: number, totalPages: number): number {
 /** All games ordered by title. */
 export async function getAllGames(db: Database): Promise<Game[]> {
     const rows = await baseGamesQuery(db).orderBy(asc(games.title));
+    return rows.map(mapGame);
+}
+
+/** Returns stable category and publisher options for catalog filters. */
+export async function getGameFilterOptions(db: Database): Promise<GameFilterOptions> {
+    const [categoryRows, publisherRows] = await Promise.all([
+        db.select({ id: categories.id, name: categories.name }).from(categories).orderBy(asc(categories.name)),
+        db.select({ id: publishers.id, name: publishers.name }).from(publishers).orderBy(asc(publishers.name)),
+    ]);
+
+    return { categories: categoryRows, publishers: publisherRows };
+}
+
+/** Returns games matching any selected category and the selected publisher, ordered by title. */
+export async function getFilteredGames(db: Database, filters: GameFilters): Promise<Game[]> {
+    const conditions = [];
+
+    if (filters.categoryIds && filters.categoryIds.length > 0) {
+        conditions.push(inArray(games.categoryId, filters.categoryIds));
+    }
+
+    if (filters.publisherId !== undefined) {
+        conditions.push(eq(games.publisherId, filters.publisherId));
+    }
+
+    const rows = await baseGamesQuery(db)
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(asc(games.title));
+
     return rows.map(mapGame);
 }
 

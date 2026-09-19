@@ -1,0 +1,65 @@
+---
+import EmptyState from './EmptyState.astro';
+import GameCard from './GameCard.astro';
+import type { Game } from '../types/game';
+
+interface Props {
+  games: Game[];
+  pageSize?: number;
+}
+
+const { games, pageSize = 6 } = Astro.props;
+---
+
+<div data-testid="filtered-game-list" data-page-size={pageSize}>
+  <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3" data-testid="games-grid">
+    {games.map((game) => <GameCard game={game} />)}
+  </div>
+  <div class="mt-6 hidden text-center text-slate-300" data-testid="filter-empty">
+    <EmptyState text="No games match the selected filters." />
+  </div>
+  <nav aria-label="Filtered game list pagination" class="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-between" data-testid="filter-pagination">
+    <button type="button" class="rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm text-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:pointer-events-none disabled:border-slate-700 disabled:text-slate-500" data-testid="filter-previous">Previous</button>
+    <span class="text-sm text-slate-300" data-testid="filter-page-status"></span>
+    <button type="button" class="rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm text-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:pointer-events-none disabled:border-slate-700 disabled:text-slate-500" data-testid="filter-next">Next</button>
+  </nav>
+</div>
+
+<script>
+  const root = document.querySelector<HTMLElement>('[data-testid="filtered-game-list"]');
+  const form = document.querySelector<HTMLFormElement>('[data-testid="game-filters"]');
+
+  if (root && form) {
+    const cards = [...root.querySelectorAll<HTMLElement>('[data-testid="game-card"]')];
+    const pageSize = Number(root.dataset.pageSize ?? '6');
+    const previous = root.querySelector<HTMLButtonElement>('[data-testid="filter-previous"]');
+    const next = root.querySelector<HTMLButtonElement>('[data-testid="filter-next"]');
+    const status = root.querySelector<HTMLElement>('[data-testid="filter-page-status"]');
+    const empty = root.querySelector<HTMLElement>('[data-testid="filter-empty"]');
+    let page = 1;
+
+    const render = () => {
+      const categories = new Set([...form.querySelectorAll<HTMLInputElement>('input[name="category"]:checked')].map((input) => input.value));
+      const publisher = form.querySelector<HTMLSelectElement>('select[name="publisher"]')?.value ?? '';
+      const matching = cards.filter((card) => {
+        const categoryMatches = categories.size === 0 || categories.has(card.dataset.categoryId ?? '');
+        const publisherMatches = publisher === '' || card.dataset.publisherId === publisher;
+        return categoryMatches && publisherMatches;
+      });
+      const totalPages = Math.max(1, Math.ceil(matching.length / pageSize));
+      page = Math.min(page, totalPages);
+      cards.forEach((card) => { card.hidden = true; });
+      matching.slice((page - 1) * pageSize, page * pageSize).forEach((card) => { card.hidden = false; });
+      empty?.classList.toggle('hidden', matching.length > 0);
+      if (previous) previous.disabled = page <= 1;
+      if (next) next.disabled = page >= totalPages;
+      if (status) status.textContent = matching.length > 0 ? `Page ${page} of ${totalPages}` : 'No results';
+    };
+
+    form.addEventListener('change', () => { page = 1; render(); });
+    form.addEventListener('reset', () => { requestAnimationFrame(() => { page = 1; render(); }); });
+    previous?.addEventListener('click', () => { page -= 1; render(); });
+    next?.addEventListener('click', () => { page += 1; render(); });
+    render();
+  }
+</script>

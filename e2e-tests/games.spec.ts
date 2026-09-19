@@ -6,6 +6,46 @@ test.describe('Game Listing and Navigation', () => {
       await page.goto('/');
     });
 
+    test('should filter games by category and publisher together', async ({ page }) => {
+      const filters = page.getByTestId('game-filters');
+      const firstCard = page.getByTestId('game-card').first();
+      const categoryId = await firstCard.getAttribute('data-category-id');
+      const publisherId = await firstCard.getAttribute('data-publisher-id');
+      const firstCategory = filters.locator(`input[name="category"][value="${categoryId}"]`);
+      const publisher = page.getByTestId('filter-publisher');
+
+      await test.step('Apply a category filter', async () => {
+        await firstCategory.check();
+        await expect(page.getByTestId('game-card').first()).toBeVisible();
+      });
+
+      await test.step('Apply a publisher filter', async () => {
+        await publisher.selectOption(publisherId ?? '');
+        await expect(page.getByTestId('filter-page-status')).toContainText('Page 1 of');
+      });
+
+      await test.step('Verify every visible card matches both selected filters', async () => {
+        const visibleCards = page.locator('[data-testid="game-card"]:not([hidden])');
+        const count = await visibleCards.count();
+
+        expect(count).toBeGreaterThan(0);
+        for (let index = 0; index < count; index += 1) {
+          await expect(visibleCards.nth(index)).toHaveAttribute('data-category-id', categoryId ?? '');
+          await expect(visibleCards.nth(index)).toHaveAttribute('data-publisher-id', publisherId ?? '');
+        }
+      });
+    });
+
+    test('should reset filtered pagination when filters change', async ({ page }) => {
+      const next = page.getByTestId('filter-next');
+      const firstCategory = page.getByTestId('game-filters').locator('input[name="category"]').first();
+
+      await next.click();
+      await expect(page.getByTestId('filter-page-status')).toContainText('Page 2 of');
+      await firstCategory.check();
+      await expect(page.getByTestId('filter-page-status')).toContainText('Page 1 of');
+    });
+
     await test.step('Verify games grid is visible', async () => {
       const gamesGrid = page.getByTestId('games-grid');
       await expect(gamesGrid).toBeVisible();
