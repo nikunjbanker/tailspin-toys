@@ -174,6 +174,33 @@ test.describe('Game Listing and Navigation', () => {
     });
   });
 
+  test('should sort the game list by title and rating', async ({ page }) => {
+    await test.step('Load the homepage and inspect the default title order', async () => {
+      await page.goto('/');
+      const titles = await page.locator('[data-testid="game-card"] [data-testid="game-title"]').allTextContents();
+      expect(titles).toEqual([...titles].sort((left, right) => left.localeCompare(right)));
+    });
+
+    await test.step('Sort by title descending', async () => {
+      const titlesBeforeSort = await page.locator('[data-testid="game-card"] [data-testid="game-title"]').allTextContents();
+      await page.locator('select[name="sort"]').first().selectOption('title-desc');
+      const titles = await page.locator('[data-testid="game-card"] [data-testid="game-title"]').allTextContents();
+      expect(titles).toEqual([...titlesBeforeSort].sort((left, right) => right.localeCompare(left)));
+    });
+
+    await test.step('Sort by rating descending with unrated games last', async () => {
+      await page.locator('select[name="sort"]').first().selectOption('rating-desc');
+      const ratings = await page.locator('[data-testid="game-card"]').evaluateAll((cards) => cards.map((card) => Number(card.getAttribute('data-star-rating') ?? '-1')));
+      const orderedRatings = [...ratings].sort((left, right) => {
+        if (left === -1 && right === -1) return 0;
+        if (left === -1) return 1;
+        if (right === -1) return -1;
+        return right - left;
+      });
+      expect(ratings).toEqual(orderedRatings);
+    });
+  });
+
   test('should be able to navigate back to home from game details', async ({ page }) => {
     await test.step('Navigate to game details page', async () => {
       await page.goto('/game/1');
