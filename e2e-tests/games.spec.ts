@@ -66,6 +66,26 @@ test.describe('Game Listing and Navigation', () => {
     await expect(page.getByTestId('filter-page-status')).toContainText('Page 1 of');
   });
 
+  test('should filter games by title as the user types', async ({ page }) => {
+    await page.goto('/');
+
+    const searchInput = page.getByTestId('title-search-input');
+    await expect(searchInput).toBeVisible();
+    await searchInput.fill('quest');
+
+    const visibleCards = page.locator('[data-testid="game-card"]:not([hidden])');
+    const count = await visibleCards.count();
+    expect(count).toBeGreaterThan(0);
+    for (let index = 0; index < count; index += 1) {
+      const cardTitle = await visibleCards.nth(index).getAttribute('data-game-title');
+      expect((cardTitle ?? '').toLowerCase()).toContain('quest');
+    }
+
+    await searchInput.fill('no matching title');
+    await expect(page.getByTestId('filter-empty')).toBeVisible();
+    await expect(page.getByTestId('filter-page-status')).toHaveText('No results');
+  });
+
   test('should navigate to correct game details page when clicking on a game', async ({ page }) => {
     let gameId: string | null;
     let gameTitle: string | null;
