@@ -1,7 +1,13 @@
-import { asc, count, eq, inArray, and } from 'drizzle-orm';
+import { asc, avg, count, eq, inArray, and } from 'drizzle-orm';
 import type { Database } from './db';
 import { games, categories, publishers } from '../../db/schema';
 import type { Game } from '../types/game';
+
+export interface CatalogSummary {
+    totalGames: number;
+    averageRating: number | null;
+    ratedGames: number;
+}
 
 export interface PaginatedGames {
     items: Game[];
@@ -81,6 +87,29 @@ export function normalizePageNumber(page: number, totalPages: number): number {
     }
 
     return Math.min(parsedPage, totalPages);
+}
+
+/** Returns the total game count and average star rating for games that have a rating. */
+export async function getCatalogSummary(db: Database): Promise<CatalogSummary> {
+    const [totalResult, ratingResult] = await Promise.all([
+        db.select({ count: count() }).from(games),
+        db
+            .select({
+                averageRating: avg(games.starRating),
+                ratedGames: count(games.starRating),
+            })
+            .from(games),
+    ]);
+
+    const totalGames = Number(totalResult[0]?.count ?? 0);
+    const ratedGames = Number(ratingResult[0]?.ratedGames ?? 0);
+    const averageRating = ratingResult[0]?.averageRating ?? null;
+
+    return {
+        totalGames,
+        averageRating: averageRating === null || Number.isNaN(Number(averageRating)) ? null : Number(averageRating),
+        ratedGames,
+    };
 }
 
 /** All games ordered by title. */
