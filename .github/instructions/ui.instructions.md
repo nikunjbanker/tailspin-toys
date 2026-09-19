@@ -1,5 +1,6 @@
 ---
 description: 'Central UI strategy and component development philosophy'
+applyTo: '**/*.{astro,css}'
 ---
 
 # UI Component Strategy
