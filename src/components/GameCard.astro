@@ -10,9 +10,8 @@ interface Props {
 const { game } = Astro.props;
 ---
 
-<a
-    href={`/game/${game.id}`}
-    class="group block bg-slate-800/60 backdrop-blur-sm rounded-xl overflow-hidden shadow-lg border border-slate-700/50 hover:border-blue-500/50 hover:shadow-blue-500/10 hover:shadow-xl transition-all duration-300 hover:translate-y-[-6px]"
+<article
+    class="group block cursor-pointer bg-slate-800/60 backdrop-blur-sm rounded-xl overflow-hidden shadow-lg border border-slate-700/50 hover:border-blue-500/50 hover:shadow-blue-500/10 hover:shadow-xl transition-all duration-300 hover:translate-y-[-6px]"
     data-testid="game-card"
     data-game-id={game.id}
     data-game-title={game.title}
@@ -20,6 +19,9 @@ const { game } = Astro.props;
     data-star-rating={game.starRating ?? ''}
     data-category-id={game.category?.id ?? ''}
     data-publisher-id={game.publisher?.id ?? ''}
+    tabindex="0"
+    role="link"
+    aria-label={`View details for ${game.title}`}
 >
     <div class="p-6 relative">
         <div class="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -34,9 +36,15 @@ const { game } = Astro.props;
                         </Tag>
                     )}
                     {game.publisher?.name && (
-                        <Tag color="purple" data-testid="game-publisher">
-                            {game.publisher.name}
-                        </Tag>
+                        <a
+                            href={`/publisher/${game.publisher.id}`}
+                            class="inline-block rounded focus:outline-none focus:ring-2 focus:ring-purple-500/80"
+                            data-testid={`publisher-link-${game.publisher.id}`}
+                        >
+                            <Tag color="purple" data-testid="game-publisher">
+                                {game.publisher.name}
+                            </Tag>
+                        </a>
                     )}
                 </div>
             )}
@@ -47,10 +55,38 @@ const { game } = Astro.props;
                 {game.starRating !== null ? `${game.starRating.toFixed(1)} / 5` : 'No rating yet'}
             </p>
 
-            <div class="mt-4 text-sm text-blue-400 font-medium flex items-center">
+            <div class="mt-4 inline-flex items-center text-sm text-blue-400 font-medium">
                 <span>View details</span>
                 <ArrowRight class="h-4 w-4 ml-1 transform transition-transform duration-300 group-hover:translate-x-2" aria-hidden="true" />
             </div>
         </div>
     </div>
-</a>
+</article>
+
+<script is:inline>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('[data-testid="game-card"]').forEach((card) => {
+            const navigateToGame = () => {
+                const gameId = card.getAttribute('data-game-id');
+                if (gameId) {
+                    window.location.href = `/game/${gameId}`;
+                }
+            };
+
+            card.addEventListener('click', (event) => {
+                if (event.target instanceof Element && event.target.closest('a')) {
+                    return;
+                }
+
+                navigateToGame();
+            });
+
+            card.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    navigateToGame();
+                }
+            });
+        });
+    });
+</script>
