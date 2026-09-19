@@ -1,4 +1,4 @@
-import { asc, avg, count, eq, inArray, and } from 'drizzle-orm';
+import { and, asc, avg, count, eq, inArray, sql } from 'drizzle-orm';
 import type { Database } from './db';
 import { games, categories, publishers } from '../../db/schema';
 import type { Game, Publisher } from '../types/game';
@@ -25,6 +25,21 @@ export interface GameFilterOptions {
 export interface GameFilters {
     categoryIds?: number[];
     publisherId?: number;
+    titleSearch?: string;
+}
+
+/**
+ * Checks whether a title contains the typed search text, ignoring case and surrounding whitespace.
+ *
+ * @param title - The game title to evaluate.
+ * @param query - The user-entered search string.
+ * @returns True when the query is empty or the title includes the query.
+ */
+export function matchesTitleQuery(title: string, query: string): boolean {
+    const normalizedTitle = title.trim().toLowerCase();
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return normalizedQuery.length === 0 || normalizedTitle.includes(normalizedQuery);
 }
 
 const gameSelection = {
@@ -140,7 +155,7 @@ export async function getGameFilterOptions(db: Database): Promise<GameFilterOpti
     return { categories: categoryRows, publishers: publisherRows };
 }
 
-/** Returns games matching any selected category and the selected publisher, ordered by title. */
+/** Returns games matching any selected category, publisher, and optional title query, ordered by title. */
 export async function getFilteredGames(db: Database, filters: GameFilters): Promise<Game[]> {
     const conditions = [];
 
@@ -150,6 +165,11 @@ export async function getFilteredGames(db: Database, filters: GameFilters): Prom
 
     if (filters.publisherId !== undefined) {
         conditions.push(eq(games.publisherId, filters.publisherId));
+    }
+
+    if (filters.titleSearch && filters.titleSearch.trim().length > 0) {
+        const searchText = filters.titleSearch.trim().toLowerCase();
+        conditions.push(sql`LOWER(${games.title}) LIKE ${`%${searchText}%`}`);
     }
 
     const rows = await baseGamesQuery(db)

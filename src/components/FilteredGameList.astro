@@ -16,7 +16,7 @@ const { games, pageSize = 6 } = Astro.props;
     {games.map((game) => <GameCard game={game} />)}
   </div>
   <div class="mt-6 hidden text-center text-slate-300" data-testid="filter-empty">
-    <EmptyState text="No games match the selected filters." />
+    <EmptyState text="No games match the current search and filters." />
   </div>
   <nav aria-label="Filtered game list pagination" class="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-between" data-testid="filter-pagination">
     <button type="button" class="rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm text-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:pointer-events-none disabled:border-slate-700 disabled:text-slate-500" data-testid="filter-previous">Previous</button>
@@ -36,16 +36,22 @@ const { games, pageSize = 6 } = Astro.props;
     const next = root.querySelector<HTMLButtonElement>('[data-testid="filter-next"]');
     const status = root.querySelector<HTMLElement>('[data-testid="filter-page-status"]');
     const empty = root.querySelector<HTMLElement>('[data-testid="filter-empty"]');
+    const searchInput = form.querySelector<HTMLInputElement>('input[name="titleSearch"]');
     let page = 1;
 
     const render = () => {
       const categories = new Set([...form.querySelectorAll<HTMLInputElement>('input[name="category"]:checked')].map((input) => input.value));
       const publisher = form.querySelector<HTMLSelectElement>('select[name="publisher"]')?.value ?? '';
+      const titleQuery = searchInput?.value.trim().toLowerCase() ?? '';
+
       const matching = cards.filter((card) => {
+        const title = (card.dataset.gameTitle ?? '').trim().toLowerCase();
         const categoryMatches = categories.size === 0 || categories.has(card.dataset.categoryId ?? '');
         const publisherMatches = publisher === '' || card.dataset.publisherId === publisher;
-        return categoryMatches && publisherMatches;
+        const titleMatches = titleQuery.length === 0 || title.includes(titleQuery);
+        return categoryMatches && publisherMatches && titleMatches;
       });
+
       const totalPages = Math.max(1, Math.ceil(matching.length / pageSize));
       page = Math.min(page, totalPages);
       cards.forEach((card) => { card.hidden = true; });
@@ -56,8 +62,25 @@ const { games, pageSize = 6 } = Astro.props;
       if (status) status.textContent = matching.length > 0 ? `Page ${page} of ${totalPages}` : 'No results';
     };
 
+    form.addEventListener('input', (event) => {
+      if ((event.target as HTMLInputElement | null)?.name === 'titleSearch') {
+        page = 1;
+        render();
+      }
+    });
+
     form.addEventListener('change', () => { page = 1; render(); });
-    form.addEventListener('reset', () => { requestAnimationFrame(() => { page = 1; render(); }); });
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      page = 1;
+      render();
+    });
+    form.addEventListener('reset', () => {
+      requestAnimationFrame(() => {
+        page = 1;
+        render();
+      });
+    });
     previous?.addEventListener('click', () => { page -= 1; render(); });
     next?.addEventListener('click', () => { page += 1; render(); });
     render();
