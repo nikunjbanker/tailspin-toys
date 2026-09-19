@@ -1,13 +1,16 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import PageHero from '../components/PageHero.astro';
-import GameList from '../components/GameList.astro';
+import GameFilters from '../components/GameFilters.astro';
+import FilteredGameList from '../components/FilteredGameList.astro';
 import { getDatabase } from '../lib/db';
-import { getGamesPage } from '../lib/games';
+import { getAllGames, getGameFilterOptions } from '../lib/games';
 
 export const prerender = true;
 
-const pagination = await getGamesPage(getDatabase());
+const db = getDatabase();
+const games = await getAllGames(db);
+const filterOptions = await getGameFilterOptions(db);
 ---
 
 <Layout title="Tailspin Toys - Crowdfunding your new favorite game!">
@@ -19,7 +22,8 @@ const pagination = await getGamesPage(getDatabase());
 
     <div>
       <h2 class="text-2xl font-medium mb-6 text-slate-100">Featured Games</h2>
-      <GameList pagination={pagination} />
+      <GameFilters {...filterOptions} />
+      <FilteredGameList games={games} />
     </div>
   </div>
 </Layout>
