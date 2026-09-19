@@ -10,6 +10,7 @@ import {
     getGameFilterOptions,
     getGameById,
     getGamesPage,
+    matchesTitleQuery,
     normalizePageNumber,
 } from './games';
 
@@ -162,6 +163,44 @@ describe('games data-access helpers', () => {
         const filtered = await getFilteredGames(db, { categoryIds: [99999] });
 
         expect(filtered).toEqual([]);
+    });
+
+    it('matches a title query case-insensitively', () => {
+        expect(matchesTitleQuery('Galaxy Quest', 'quest')).toBe(true);
+        expect(matchesTitleQuery('Galaxy Quest', 'QUEST')).toBe(true);
+        expect(matchesTitleQuery('Galaxy Quest', 'planet')).toBe(false);
+        expect(matchesTitleQuery('  Galaxy Quest  ', ' galaxy ')).toBe(true);
+    });
+
+    it('filters by title search text in addition to category and publisher filters', async () => {
+        const [strategy, adventure] = await db
+            .insert(categories)
+            .values([
+                { name: 'Strategy', description: 'cat' },
+                { name: 'Adventure', description: 'cat' },
+            ])
+            .returning({ id: categories.id });
+        const [publisherOne, publisherTwo] = await db
+            .insert(publishers)
+            .values([
+                { name: 'Pub One', description: 'pub' },
+                { name: 'Pub Two', description: 'pub' },
+            ])
+            .returning({ id: publishers.id });
+
+        await db.insert(games).values([
+            { title: 'Quest for Glory', description: 'game', starRating: 4, categoryId: adventure.id, publisherId: publisherOne.id },
+            { title: 'Strategy Quest', description: 'game', starRating: 4, categoryId: strategy.id, publisherId: publisherOne.id },
+            { title: 'Moonlit Drift', description: 'game', starRating: 4, categoryId: strategy.id, publisherId: publisherTwo.id },
+        ]);
+
+        const filtered = await getFilteredGames(db, {
+            categoryIds: [strategy.id, adventure.id],
+            publisherId: publisherOne.id,
+            titleSearch: 'quest',
+        });
+
+        expect(filtered.map((game) => game.title)).toEqual(['Quest for Glory', 'Strategy Quest']);
     });
 
     it('fetches a single game by id with related descriptions', async () => {
