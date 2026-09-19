@@ -19,6 +19,8 @@ export const getStaticPaths = (async () => {
 
 const { id } = Astro.params;
 const game = await getGameById(getDatabase(), Number(id));
+const categoryDescription = game?.category?.description?.trim();
+const publisherDescription = game?.publisher?.description?.trim();
 
 if (!game) {
     return Astro.redirect('/404');
@@ -47,6 +49,20 @@ if (!game) {
             </Tag>
           )}
         </div>
+
+        {categoryDescription && (
+          <div class="mt-6 rounded-lg border border-slate-700 bg-slate-900/40 p-4" data-testid="game-details-category-description">
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-sky-300 mb-2">Category description</h3>
+            <p class="text-slate-300">{categoryDescription}</p>
+          </div>
+        )}
+
+        {publisherDescription && (
+          <div class="mt-6 rounded-lg border border-slate-700 bg-slate-900/40 p-4" data-testid="game-details-publisher-description">
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-violet-300 mb-2">Publisher description</h3>
+            <p class="text-slate-300">{publisherDescription}</p>
+          </div>
+        )}
 
         <div class="space-y-4 mt-6">
           <h2 class="text-lg font-semibold text-slate-200 mb-2">About this game</h2>
