@@ -46,6 +46,13 @@ ALL UI components MUST use dark theme colors:
 - Use semantic grouping: layout, spacing, colors, typography
 - Keep utility combinations readable and maintainable
 
+## TypeScript and documentation conventions
+
+- Prefer explicit, readable TypeScript types; keep object contracts in `interface` declarations when they represent reusable shapes.
+- Use ESLint and the project's TypeScript rules for consistency where practical, and treat documentation as part of the code review standard whenever a change makes an API or behavior less obvious.
+- Keep formatting consistent across files: one clear declaration per symbol, minimal nesting, and stable ordering in imports and props.
+- Comments should explain intent, assumptions, and tradeoffs; they should not repeat the implementation in prose.
+
 ## Modern UI Patterns
 
 - Rounded corners: `rounded-lg`, `rounded-xl`, `rounded-2xl`
