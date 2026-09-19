@@ -1,0 +1,35 @@
+---
+import type { GetStaticPaths } from 'astro';
+import Layout from '../../layouts/Layout.astro';
+import PageHero from '../../components/PageHero.astro';
+import GameList from '../../components/GameList.astro';
+import { getDatabase } from '../../lib/db';
+import { getGamesPage } from '../../lib/games';
+
+export const prerender = true;
+
+export const getStaticPaths = (async () => {
+  const pagination = await getGamesPage(getDatabase());
+
+  return Array.from({ length: pagination.totalPages }, (_, index) => ({
+    params: { page: String(index + 1) },
+  }));
+}) satisfies GetStaticPaths;
+
+const page = Number.parseInt(Astro.params.page ?? '1', 10);
+const pagination = await getGamesPage(getDatabase(), page);
+---
+
+<Layout title="Tailspin Toys - Crowdfunding your new favorite game!">
+  <div class="py-8">
+    <PageHero
+      title="Welcome to Tailspin Toys"
+      subtitle="Find your next game! And maybe even back one! Explore our collection!"
+    />
+
+    <div>
+      <h2 class="text-2xl font-medium mb-6 text-slate-100">Featured Games</h2>
+      <GameList pagination={pagination} />
+    </div>
+  </div>
+</Layout>

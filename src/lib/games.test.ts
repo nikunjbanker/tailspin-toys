@@ -6,6 +6,8 @@ import {
     getAllGames,
     getAllGameIds,
     getGameById,
+    getGamesPage,
+    normalizePageNumber,
 } from './games';
 
 async function seedGames(db: Database, count: number): Promise<void> {
@@ -62,5 +64,23 @@ describe('games data-access helpers', () => {
     it('returns null for a non-existent game', async () => {
         await seedGames(db, 2);
         expect(await getGameById(db, 99999)).toBeNull();
+    });
+
+    it('paginates the full set of games with metadata', async () => {
+        await seedGames(db, 8);
+
+        const page = await getGamesPage(db, 2, 3);
+
+        expect(page.totalCount).toBe(8);
+        expect(page.totalPages).toBe(3);
+        expect(page.currentPage).toBe(2);
+        expect(page.pageSize).toBe(3);
+        expect(page.items.map((game) => game.title)).toEqual(['Game 04', 'Game 05', 'Game 06']);
+    });
+
+    it('normalizes out-of-range page numbers', () => {
+        expect(normalizePageNumber(0, 3)).toBe(1);
+        expect(normalizePageNumber(99, 3)).toBe(3);
+        expect(normalizePageNumber(2, 1)).toBe(1);
     });
 });

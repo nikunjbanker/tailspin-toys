@@ -1,0 +1,75 @@
+---
+import EmptyState from './EmptyState.astro';
+import GameCard from './GameCard.astro';
+import type { PaginatedGames } from '../lib/games';
+
+interface Props {
+  pagination: PaginatedGames;
+}
+
+const { pagination } = Astro.props;
+const { items, currentPage, totalPages } = pagination;
+const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1);
+---
+
+{items.length === 0 ? (
+  <EmptyState text="No games available at the moment." />
+) : (
+  <>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="games-grid">
+      {items.map((game) => <GameCard game={game} />)}
+    </div>
+
+    <nav
+      aria-label="Game list pagination"
+      data-testid="pagination"
+      class="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-between"
+    >
+      <a
+        href={currentPage > 1 ? `/page/${currentPage - 1}` : '/'}
+        class:list={[
+          'inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-medium transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none',
+          currentPage <= 1
+            ? 'pointer-events-none border-slate-700 bg-slate-800 text-slate-500'
+            : 'border-slate-600 bg-slate-800 text-slate-200 hover:border-blue-500 hover:text-blue-400',
+        ]}
+        data-testid="pagination-previous"
+        aria-disabled={currentPage <= 1 ? 'true' : 'false'}
+      >
+        Previous
+      </a>
+
+      <div class="flex flex-wrap items-center justify-center gap-2">
+        {pageNumbers.map((page) => (
+          <a
+            href={page === 1 ? '/' : `/page/${page}`}
+            class:list={[
+              'inline-flex h-10 w-10 items-center justify-center rounded-full border text-sm font-medium transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none',
+              page === currentPage
+                ? 'border-blue-500 bg-blue-600 text-white'
+                : 'border-slate-600 bg-slate-800 text-slate-200 hover:border-blue-500 hover:text-blue-400',
+            ]}
+            data-testid={`pagination-page-${page}`}
+            aria-current={page === currentPage ? 'page' : undefined}
+          >
+            {page}
+          </a>
+        ))}
+      </div>
+
+      <a
+        href={currentPage < totalPages ? `/page/${currentPage + 1}` : `/page/${totalPages}`}
+        class:list={[
+          'inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-medium transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none',
+          currentPage >= totalPages
+            ? 'pointer-events-none border-slate-700 bg-slate-800 text-slate-500'
+            : 'border-slate-600 bg-slate-800 text-slate-200 hover:border-blue-500 hover:text-blue-400',
+        ]}
+        data-testid="pagination-next"
+        aria-disabled={currentPage >= totalPages ? 'true' : 'false'}
+      >
+        Next
+      </a>
+    </nav>
+  </>
+)}

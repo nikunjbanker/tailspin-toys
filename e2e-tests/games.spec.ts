@@ -100,6 +100,19 @@ test.describe('Game Listing and Navigation', () => {
     });
   });
 
+  test('should paginate the game list with accessible controls', async ({ page }) => {
+    await test.step('Navigate to the second page of the game list', async () => {
+      await page.goto('/page/2');
+      await expect(page.getByTestId('pagination')).toBeVisible();
+      await expect(page.getByTestId('pagination-page-2')).toHaveAttribute('aria-current', 'page');
+    });
+
+    await test.step('Verify only the selected page is visible', async () => {
+      await expect(page.getByTestId('game-card')).toHaveCount(6);
+      await expect(page.getByTestId('pagination-next')).toHaveAttribute('aria-disabled', 'false');
+    });
+  });
+
   test('should be able to navigate back to home from game details', async ({ page }) => {
     await test.step('Navigate to game details page', async () => {
       await page.goto('/game/1');
