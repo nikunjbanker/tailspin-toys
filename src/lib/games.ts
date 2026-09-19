@@ -1,7 +1,15 @@
-import { eq, asc } from 'drizzle-orm';
+import { asc, count, eq } from 'drizzle-orm';
 import type { Database } from './db';
 import { games, categories, publishers } from '../../db/schema';
 import type { Game } from '../types/game';
+
+export interface PaginatedGames {
+    items: Game[];
+    totalCount: number;
+    totalPages: number;
+    currentPage: number;
+    pageSize: number;
+}
 
 const gameSelection = {
     id: games.id,
@@ -50,10 +58,47 @@ function baseGamesQuery(db: Database) {
         .leftJoin(publishers, eq(games.publisherId, publishers.id));
 }
 
+/** Returns the closest valid page number within the available range. */
+export function normalizePageNumber(page: number, totalPages: number): number {
+    const parsedPage = Number.isFinite(page) ? Math.trunc(page) : 1;
+
+    if (parsedPage < 1) {
+        return 1;
+    }
+
+    if (totalPages < 1) {
+        return 1;
+    }
+
+    return Math.min(parsedPage, totalPages);
+}
+
 /** All games ordered by title. */
 export async function getAllGames(db: Database): Promise<Game[]> {
     const rows = await baseGamesQuery(db).orderBy(asc(games.title));
     return rows.map(mapGame);
+}
+
+/** Returns one page of games and pagination metadata. */
+export async function getGamesPage(db: Database, page = 1, pageSize = 6): Promise<PaginatedGames> {
+    const safePageSize = Math.max(1, Math.trunc(pageSize));
+    const totalCountResult = await db.select({ count: count() }).from(games);
+    const totalCount = Number(totalCountResult[0]?.count ?? 0);
+    const totalPages = Math.max(1, Math.ceil(totalCount / safePageSize));
+    const currentPage = normalizePageNumber(page, totalPages);
+    const offset = (currentPage - 1) * safePageSize;
+    const rows = await baseGamesQuery(db)
+        .orderBy(asc(games.title))
+        .limit(safePageSize)
+        .offset(offset);
+
+    return {
+        items: rows.map(mapGame),
+        totalCount,
+        totalPages,
+        currentPage,
+        pageSize: safePageSize,
+    };
 }
 
 /** All game ids ordered by title. */
