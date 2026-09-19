@@ -9,7 +9,9 @@ import {
     getFilteredGames,
     getGameFilterOptions,
     getGameById,
+    getGamesByPublisher,
     getGamesPage,
+    getPublisherById,
     matchesTitleQuery,
     normalizePageNumber,
 } from './games';
@@ -215,6 +217,44 @@ describe('games data-access helpers', () => {
     it('returns null for a non-existent game', async () => {
         await seedGames(db, 2);
         expect(await getGameById(db, 99999)).toBeNull();
+    });
+
+    it('returns all games for a specific publisher ordered by title', async () => {
+        const [strategy, adventure] = await db
+            .insert(categories)
+            .values([
+                { name: 'Strategy', description: 'cat' },
+                { name: 'Adventure', description: 'cat' },
+            ])
+            .returning({ id: categories.id });
+        const [publisherOne, publisherTwo] = await db
+            .insert(publishers)
+            .values([
+                { name: 'Pub One', description: 'pub' },
+                { name: 'Pub Two', description: 'pub' },
+            ])
+            .returning({ id: publishers.id });
+        await db.insert(games).values([
+            { title: 'Adventure One', description: 'game', starRating: 4, categoryId: adventure.id, publisherId: publisherOne.id },
+            { title: 'Strategy One', description: 'game', starRating: 4, categoryId: strategy.id, publisherId: publisherOne.id },
+            { title: 'Strategy Two', description: 'game', starRating: 4, categoryId: strategy.id, publisherId: publisherTwo.id },
+        ]);
+
+        const publisherGames = await getGamesByPublisher(db, publisherOne.id);
+
+        expect(publisherGames.map((game) => game.title)).toEqual(['Adventure One', 'Strategy One']);
+        expect(publisherGames.every((game) => game.publisher?.id === publisherOne.id)).toBe(true);
+    });
+
+    it('returns the publisher by id and null for non-existent publishers', async () => {
+        const [publisher] = await db.insert(publishers).values({ name: 'Pub One', description: 'pub' }).returning({ id: publishers.id });
+
+        expect(await getPublisherById(db, publisher.id)).toEqual({
+            id: publisher.id,
+            name: 'Pub One',
+            description: 'pub',
+        });
+        expect(await getPublisherById(db, 99999)).toBeNull();
     });
 
     it('paginates the full set of games with metadata', async () => {

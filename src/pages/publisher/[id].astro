@@ -1,0 +1,54 @@
+---
+import type { GetStaticPaths } from 'astro';
+import Layout from '../../layouts/Layout.astro';
+import GameCard from '../../components/GameCard.astro';
+import { getDatabase } from '../../lib/db';
+import { getAllPublisherIds, getGamesByPublisher, getPublisherById } from '../../lib/games';
+
+export const prerender = true;
+
+export const getStaticPaths = (async () => {
+    const ids = await getAllPublisherIds(getDatabase());
+    return ids.map((id) => ({ params: { id: String(id) } }));
+}) satisfies GetStaticPaths;
+
+const { id } = Astro.params;
+const db = getDatabase();
+const publisher = await getPublisherById(db, Number(id));
+const games = publisher ? await getGamesByPublisher(db, publisher.id) : [];
+
+if (!publisher) {
+    return Astro.redirect('/404');
+}
+---
+
+<Layout title={`${publisher.name} - Tailspin Toys`}>
+  <div class="py-8">
+    <section class="mb-8 rounded-2xl border border-slate-700 bg-slate-800/70 p-6 shadow-xl" data-testid="publisher-page">
+      <p class="text-sm font-semibold uppercase tracking-[0.2em] text-violet-300">Publisher</p>
+      <h1 class="mt-3 text-3xl font-bold text-slate-100" data-testid="publisher-page-title">{publisher.name}</h1>
+      {publisher.description && (
+        <p class="mt-4 max-w-3xl text-slate-300" data-testid="publisher-page-description">{publisher.description}</p>
+      )}
+    </section>
+
+    <section aria-labelledby="publisher-games-heading" data-testid="publisher-games">
+      <div class="mb-6 flex items-center justify-between gap-3">
+        <h2 id="publisher-games-heading" class="text-2xl font-medium text-slate-100" data-testid="publisher-games-heading">
+          Games from {publisher.name}
+        </h2>
+        <a href="/" class="text-sm font-medium text-blue-400 transition-colors hover:text-blue-300" data-testid="publisher-page-home-link">
+          Back to all games
+        </a>
+      </div>
+
+      <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3" data-testid="publisher-games-grid">
+        {games.length > 0 ? (
+          games.map((game) => <GameCard game={game} />)
+        ) : (
+          <p class="text-slate-400" data-testid="publisher-no-games">No games published yet.</p>
+        )}
+      </div>
+    </section>
+  </div>
+</Layout>
