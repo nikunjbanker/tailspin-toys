@@ -126,6 +126,25 @@ test.describe('Game Listing and Navigation', () => {
         await expect(page.getByTestId('game-details-category')).not.toBeEmpty();
       }
     });
+
+    await test.step('Verify category and publisher description blocks render when present', async () => {
+      const categoryDescription = page.getByTestId('game-details-category-description');
+      const publisherDescription = page.getByTestId('game-details-publisher-description');
+      const categoryCount = await categoryDescription.count();
+      const publisherCount = await publisherDescription.count();
+
+      expect(categoryCount + publisherCount).toBeGreaterThan(0);
+
+      if (categoryCount > 0) {
+        await expect(categoryDescription).toBeVisible();
+        await expect(categoryDescription).toContainText(/\S+/);
+      }
+
+      if (publisherCount > 0) {
+        await expect(publisherDescription).toBeVisible();
+        await expect(publisherDescription).toContainText(/\S+/);
+      }
+    });
   });
 
   test('should display a button to back the game', async ({ page }) => {
