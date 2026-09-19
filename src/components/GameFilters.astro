@@ -47,17 +47,32 @@ const { categories, publishers } = Astro.props;
           ))}
         </div>
       </div>
-      <div>
-        <label for="publisher-filter" class="mb-2 block text-sm font-medium text-slate-200">Publisher</label>
-        <select
-          id="publisher-filter"
-          name="publisher"
-          class="w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-          data-testid="filter-publisher"
-        >
-          <option value="">All publishers</option>
-          {publishers.map((publisher) => <option value={publisher.id}>{publisher.name}</option>)}
-        </select>
+      <div class="space-y-4">
+        <div>
+          <label for="publisher-filter" class="mb-2 block text-sm font-medium text-slate-200">Publisher</label>
+          <select
+            id="publisher-filter"
+            name="publisher"
+            class="w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            data-testid="filter-publisher"
+          >
+            <option value="">All publishers</option>
+            {publishers.map((publisher) => <option value={publisher.id}>{publisher.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label for="game-sort" class="mb-2 block text-sm font-medium text-slate-200">Sort by</label>
+          <select
+            id="game-sort"
+            name="sort"
+            class="w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            data-testid="game-sort"
+          >
+            <option value="title-asc">Title: A–Z</option>
+            <option value="title-desc">Title: Z–A</option>
+            <option value="rating-desc">Rating: highest first</option>
+          </select>
+        </div>
       </div>
     </div>
     <button

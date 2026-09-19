@@ -12,6 +12,22 @@ const { items, currentPage, totalPages } = pagination;
 const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1);
 ---
 
+<div class="mb-6 flex justify-end">
+  <label for="catalog-sort" class="flex items-center gap-3 text-sm text-slate-300">
+    <span>Sort by</span>
+    <select
+      id="catalog-sort"
+      name="sort"
+      class="rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+      data-testid="game-sort"
+    >
+      <option value="title-asc">Title: A–Z</option>
+      <option value="title-desc">Title: Z–A</option>
+      <option value="rating-desc">Rating: highest first</option>
+    </select>
+  </label>
+</div>
+
 {items.length === 0 ? (
   <EmptyState text="No games available at the moment." />
 ) : (
@@ -73,3 +89,40 @@ const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1);
     </nav>
   </>
 )}
+
+<script>
+  import { sortGames, type GameSort } from '../lib/sort';
+
+  const sortSelect = document.querySelector<HTMLSelectElement>('[data-testid="game-sort"]');
+
+  if (sortSelect) {
+    const grid = document.querySelector<HTMLElement>('[data-testid="games-grid"]');
+
+    if (grid) {
+      const getSortedCards = () => {
+        const cardMap = new Map(
+          [...grid.querySelectorAll<HTMLElement>('[data-testid="game-card"]')].map((card) => [Number(card.dataset.gameId ?? '0'), card]),
+        );
+        const sortValue = (sortSelect.value as GameSort) ?? 'title-asc';
+
+        return sortGames(
+          [...grid.querySelectorAll<HTMLElement>('[data-testid="game-card"]')].map((card) => ({
+            id: Number(card.dataset.gameId ?? '0'),
+            title: card.dataset.gameTitle ?? '',
+            description: card.dataset.gameDescription ?? '',
+            starRating: card.dataset.starRating === '' ? null : Number(card.dataset.starRating ?? 'null'),
+            category: null,
+            publisher: null,
+          })),
+          sortValue,
+        ).map((game) => cardMap.get(game.id)).filter((card): card is HTMLElement => card !== undefined);
+      };
+
+      const sortCards = () => {
+        getSortedCards().forEach((card) => { grid.appendChild(card); });
+      };
+
+      sortSelect.addEventListener('change', sortCards);
+    }
+  }
+</script>

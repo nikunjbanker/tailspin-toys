@@ -12,6 +12,7 @@ import {
     getGamesPage,
     matchesTitleQuery,
     normalizePageNumber,
+    sortGames,
 } from './games';
 
 async function seedGames(db: Database, count: number): Promise<void> {
@@ -103,6 +104,28 @@ describe('games data-access helpers', () => {
             name: 'Pub One',
             description: 'pub',
         });
+    });
+
+    it('sorts games by title in both directions', () => {
+        const gamesList = [
+            { id: 1, title: 'Beta', description: 'desc', starRating: 4.5, category: null, publisher: null },
+            { id: 2, title: 'Alpha', description: 'desc', starRating: 3.4, category: null, publisher: null },
+            { id: 3, title: 'Gamma', description: 'desc', starRating: 4.9, category: null, publisher: null },
+        ];
+
+        expect(sortGames(gamesList, 'title-asc').map((game) => game.title)).toEqual(['Alpha', 'Beta', 'Gamma']);
+        expect(sortGames(gamesList, 'title-desc').map((game) => game.title)).toEqual(['Gamma', 'Beta', 'Alpha']);
+    });
+
+    it('sorts games by rating with unrated games last', () => {
+        const gamesList = [
+            { id: 1, title: 'Unrated', description: 'desc', starRating: null, category: null, publisher: null },
+            { id: 2, title: 'Beta', description: 'desc', starRating: 4.5, category: null, publisher: null },
+            { id: 3, title: 'Alpha', description: 'desc', starRating: 3.4, category: null, publisher: null },
+            { id: 4, title: 'Gamma', description: 'desc', starRating: 4.5, category: null, publisher: null },
+        ];
+
+        expect(sortGames(gamesList, 'rating-desc').map((game) => game.title)).toEqual(['Beta', 'Gamma', 'Alpha', 'Unrated']);
     });
 
     it('returns all game ids ordered by title', async () => {
