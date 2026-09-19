@@ -4,12 +4,13 @@ import PageHero from '../components/PageHero.astro';
 import GameFilters from '../components/GameFilters.astro';
 import FilteredGameList from '../components/FilteredGameList.astro';
 import { getDatabase } from '../lib/db';
-import { getAllGames, getGameFilterOptions } from '../lib/games';
+import { getAllGames, getCatalogSummary, getGameFilterOptions } from '../lib/games';
 
 export const prerender = true;
 
 const db = getDatabase();
 const games = await getAllGames(db);
+const catalogSummary = await getCatalogSummary(db);
 const filterOptions = await getGameFilterOptions(db);
 ---
 
@@ -19,6 +20,23 @@ const filterOptions = await getGameFilterOptions(db);
       title="Welcome to Tailspin Toys"
       subtitle="Find your next game! And maybe even back one! Explore our collection!"
     />
+
+    <section class="mb-8 rounded-2xl border border-slate-700 bg-slate-800/70 p-6 shadow-xl" aria-label="Catalog summary" data-testid="catalog-summary">
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div class="rounded-xl border border-slate-700 bg-slate-900/60 p-5" data-testid="catalog-summary-total">
+          <p class="text-sm uppercase tracking-wide text-slate-400">Games in catalog</p>
+          <p class="mt-2 text-3xl font-bold text-slate-100" data-testid="catalog-summary-total-value">
+            {catalogSummary.totalGames}
+          </p>
+        </div>
+        <div class="rounded-xl border border-slate-700 bg-slate-900/60 p-5" data-testid="catalog-summary-rating">
+          <p class="text-sm uppercase tracking-wide text-slate-400">Average rating</p>
+          <p class="mt-2 text-3xl font-bold text-slate-100" data-testid="catalog-summary-average-value">
+            {catalogSummary.averageRating === null ? 'No ratings yet' : `${catalogSummary.averageRating.toFixed(1)} / 5`}
+          </p>
+        </div>
+      </div>
+    </section>
 
     <div>
       <h2 class="text-2xl font-medium mb-6 text-slate-100">Featured Games</h2>

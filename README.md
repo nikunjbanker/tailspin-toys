@@ -33,7 +33,7 @@ npx playwright install chromium   # only needed to run the E2E tests
 npm run dev
 ```
 
-`predev` migrates and seeds the local database first. Then navigate to the [website](http://localhost:4321) to see the site! The home page lists a page of games at a time and includes accessible pagination controls for browsing the catalog.
+`predev` migrates and seeds the local database first. Then navigate to the [website](http://localhost:4321) to see the site! The home page includes a catalog summary with total games and the average rating, then lists a page of games at a time with accessible pagination controls for browsing the catalog.
 
 To preview a production build instead:
 
