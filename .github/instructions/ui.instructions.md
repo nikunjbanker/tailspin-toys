@@ -51,6 +51,13 @@ Refer to technology-specific instruction files:
 - Use props for configuration, not duplication
 - Document component APIs with TypeScript types
 
+### Commenting and documentation standards
+
+- Comment the intent, not the mechanics: explain why a decision exists, what tradeoff it makes, or what constraint it addresses.
+- Do not restate the code in plain English. If a line of code is obvious, the file does not need a comment.
+- Keep comments and docs aligned with the code; stale comments are treated like bugs and should be fixed in the same change.
+- Document reusable component contracts and exported functions in the same change set as the behavior they describe.
+
 ## Development Workflow
 
 1. **Choose the right tool**: 
