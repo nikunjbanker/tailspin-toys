@@ -2,6 +2,11 @@ import { and, asc, avg, count, eq, inArray, sql } from 'drizzle-orm';
 import type { Database } from './db';
 import { games, categories, publishers } from '../../db/schema';
 import type { Game, Publisher } from '../types/game';
+import { sortGames } from './sort';
+import type { GameSort } from './sort';
+
+export { sortGames } from './sort';
+export type { GameSort } from './sort';
 
 export interface CatalogSummary {
     totalGames: number;
@@ -139,10 +144,10 @@ export async function getCatalogSummary(db: Database): Promise<CatalogSummary> {
     };
 }
 
-/** All games ordered by title. */
-export async function getAllGames(db: Database): Promise<Game[]> {
+/** All games in the requested sort order. */
+export async function getAllGames(db: Database, sort: GameSort = 'title-asc'): Promise<Game[]> {
     const rows = await baseGamesQuery(db).orderBy(asc(games.title));
-    return rows.map(mapGame);
+    return sortGames(rows.map(mapGame), sort);
 }
 
 /** Returns stable category and publisher options for catalog filters. */
@@ -155,8 +160,8 @@ export async function getGameFilterOptions(db: Database): Promise<GameFilterOpti
     return { categories: categoryRows, publishers: publisherRows };
 }
 
-/** Returns games matching any selected category, publisher, and optional title query, ordered by title. */
-export async function getFilteredGames(db: Database, filters: GameFilters): Promise<Game[]> {
+/** Returns games matching any selected category and the selected publisher, ordered by the requested sort. */
+export async function getFilteredGames(db: Database, filters: GameFilters, sort: GameSort = 'title-asc'): Promise<Game[]> {
     const conditions = [];
 
     if (filters.categoryIds && filters.categoryIds.length > 0) {
@@ -176,24 +181,22 @@ export async function getFilteredGames(db: Database, filters: GameFilters): Prom
         .where(conditions.length > 0 ? and(...conditions) : undefined)
         .orderBy(asc(games.title));
 
-    return rows.map(mapGame);
+    return sortGames(rows.map(mapGame), sort);
 }
 
 /** Returns one page of games and pagination metadata. */
-export async function getGamesPage(db: Database, page = 1, pageSize = 6): Promise<PaginatedGames> {
+export async function getGamesPage(db: Database, page = 1, pageSize = 6, sort: GameSort = 'title-asc'): Promise<PaginatedGames> {
     const safePageSize = Math.max(1, Math.trunc(pageSize));
-    const totalCountResult = await db.select({ count: count() }).from(games);
-    const totalCount = Number(totalCountResult[0]?.count ?? 0);
+    const rows = await baseGamesQuery(db).orderBy(asc(games.title));
+    const allGames = sortGames(rows.map(mapGame), sort);
+    const totalCount = allGames.length;
     const totalPages = Math.max(1, Math.ceil(totalCount / safePageSize));
     const currentPage = normalizePageNumber(page, totalPages);
     const offset = (currentPage - 1) * safePageSize;
-    const rows = await baseGamesQuery(db)
-        .orderBy(asc(games.title))
-        .limit(safePageSize)
-        .offset(offset);
+    const items = allGames.slice(offset, offset + safePageSize);
 
     return {
-        items: rows.map(mapGame),
+        items,
         totalCount,
         totalPages,
         currentPage,

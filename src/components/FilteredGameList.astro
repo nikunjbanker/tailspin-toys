@@ -26,25 +26,47 @@ const { games, pageSize = 6 } = Astro.props;
 </div>
 
 <script>
+  import { sortGames, type GameSort } from '../lib/sort';
+
   const root = document.querySelector<HTMLElement>('[data-testid="filtered-game-list"]');
   const form = document.querySelector<HTMLFormElement>('[data-testid="game-filters"]');
 
   if (root && form) {
     const cards = [...root.querySelectorAll<HTMLElement>('[data-testid="game-card"]')];
+    const grid = root.querySelector<HTMLElement>('[data-testid="games-grid"]');
     const pageSize = Number(root.dataset.pageSize ?? '6');
     const previous = root.querySelector<HTMLButtonElement>('[data-testid="filter-previous"]');
     const next = root.querySelector<HTMLButtonElement>('[data-testid="filter-next"]');
     const status = root.querySelector<HTMLElement>('[data-testid="filter-page-status"]');
     const empty = root.querySelector<HTMLElement>('[data-testid="filter-empty"]');
     const searchInput = form.querySelector<HTMLInputElement>('input[name="titleSearch"]');
+    const sortSelect = form.querySelector<HTMLSelectElement>('select[name="sort"]');
     let page = 1;
+
+    const toGame = (card: HTMLElement) => ({
+      id: Number(card.dataset.gameId ?? '0'),
+      title: card.dataset.gameTitle ?? '',
+      description: card.dataset.gameDescription ?? '',
+      starRating: card.dataset.starRating === '' ? null : Number(card.dataset.starRating ?? 'null'),
+      category: null,
+      publisher: null,
+    });
+
+    const getSortedCards = () => {
+      const sortValue = (sortSelect?.value as GameSort) ?? 'title-asc';
+      const cardMap = new Map(cards.map((card) => [Number(card.dataset.gameId ?? '0'), card]));
+
+      return sortGames(cards.map(toGame), sortValue).map((game) => cardMap.get(game.id)).filter((card): card is HTMLElement => card !== undefined);
+    };
 
     const render = () => {
       const categories = new Set([...form.querySelectorAll<HTMLInputElement>('input[name="category"]:checked')].map((input) => input.value));
       const publisher = form.querySelector<HTMLSelectElement>('select[name="publisher"]')?.value ?? '';
       const titleQuery = searchInput?.value.trim().toLowerCase() ?? '';
 
-      const matching = cards.filter((card) => {
+      const orderedCards = getSortedCards();
+      orderedCards.forEach((card) => { grid?.appendChild(card); });
+      const matching = orderedCards.filter((card) => {
         const title = (card.dataset.gameTitle ?? '').trim().toLowerCase();
         const categoryMatches = categories.size === 0 || categories.has(card.dataset.categoryId ?? '');
         const publisherMatches = publisher === '' || card.dataset.publisherId === publisher;
